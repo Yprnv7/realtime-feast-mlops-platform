@@ -1,0 +1,12 @@
+{
+  "online_p50_latency_us": 0.875,
+  "online_p95_latency_us": 0.959,
+  "online_p99_latency_us": 1.042,
+  "streaming_throughput_events_per_sec": 5170.681839341754,
+  "pit_join_total_duration_ms": 203.27658399764914,
+  "pit_join_per_observation_us": 203.27658399764914,
+  "pit_data_leakage_violations": 0,
+  "drift_eval_duration_ms": 9.944457997335121,
+  "drift_psi_detected": 0.14038267893074075,
+  "generated_at": "2026-11-18T23:14:50.609773+00:00"
+}
