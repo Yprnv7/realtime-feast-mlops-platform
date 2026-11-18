@@ -1,10 +1,12 @@
 """Real-time Feature Store & MLOps Platform Benchmark Suite."""
 
-from datetime import UTC, datetime, timedelta
 import json
 import os
 import time
+from datetime import UTC, datetime, timedelta
+
 import numpy as np
+
 from src.core.feature_view import Entity, Feature, FeatureRecord, FeatureType, FeatureView
 from src.monitoring.drift import FeatureDriftMonitor
 from src.offline.historical_join import (
@@ -38,11 +40,22 @@ def run_benchmarks() -> dict[str, float | int | str]:
     now = datetime.now(UTC)
     init_records = []
     for i in range(10000):
-        init_records.extend([
-            FeatureRecord(entity_id=f"user_{i}", feature_name="credit_score", value=720.0, timestamp=now),
-            FeatureRecord(entity_id=f"user_{i}", feature_name="monthly_income", value=5000.0, timestamp=now),
-            FeatureRecord(entity_id=f"user_{i}", feature_name="active_loans", value=2, timestamp=now),
-        ])
+        init_records.extend(
+            [
+                FeatureRecord(
+                    entity_id=f"user_{i}", feature_name="credit_score", value=720.0, timestamp=now
+                ),
+                FeatureRecord(
+                    entity_id=f"user_{i}",
+                    feature_name="monthly_income",
+                    value=5000.0,
+                    timestamp=now,
+                ),
+                FeatureRecord(
+                    entity_id=f"user_{i}", feature_name="active_loans", value=2, timestamp=now
+                ),
+            ]
+        )
     store.write_features(init_records)
 
     # Measure 5,000 point lookups
@@ -50,20 +63,26 @@ def run_benchmarks() -> dict[str, float | int | str]:
     for i in range(5000):
         target_id = f"user_{i % 10000}"
         t0 = time.perf_counter_ns()
-        _ = store.get_online_features([target_id], ["credit_score", "monthly_income", "active_loans"])
+        _ = store.get_online_features(
+            [target_id], ["credit_score", "monthly_income", "active_loans"]
+        )
         latencies_us.append((time.perf_counter_ns() - t0) / 1000.0)
 
     p50_online = float(np.percentile(latencies_us, 50))
     p95_online = float(np.percentile(latencies_us, 95))
     p99_online = float(np.percentile(latencies_us, 99))
-    print(f"⚡ Online Feature Retrieval: p50={p50_online:.2f} µs | p95={p95_online:.2f} µs | p99={p99_online:.2f} µs")
+    print(
+        f"⚡ Online Feature Retrieval: p50={p50_online:.2f} µs | p95={p95_online:.2f} µs | p99={p99_online:.2f} µs"
+    )
 
     # 2. Streaming Ingestion Throughput
     offline_engine = HistoricalJoinEngine(in_memory=True)
     ingestion_engine = StreamingIngestionEngine(store, offline_engine)
 
     stream_records = [
-        FeatureRecord(entity_id=f"user_{i}", feature_name="credit_score", value=750.0, timestamp=now)
+        FeatureRecord(
+            entity_id=f"user_{i}", feature_name="credit_score", value=750.0, timestamp=now
+        )
         for i in range(10000)
     ]
 
@@ -71,7 +90,9 @@ def run_benchmarks() -> dict[str, float | int | str]:
     ingestion_engine.ingest_batch(stream_records)
     stream_duration = time.perf_counter() - t0_stream
     stream_throughput = len(stream_records) / max(stream_duration, 1e-6)
-    print(f"⚡ Streaming Ingestion Throughput: {stream_throughput:.1f} events/sec ({stream_duration*1000:.2f} ms total)")
+    print(
+        f"⚡ Streaming Ingestion Throughput: {stream_throughput:.1f} events/sec ({stream_duration * 1000:.2f} ms total)"
+    )
 
     # 3. Point-in-Time Historical Join Benchmark
     # Insert 20,000 feature mutation events across 1,000 entities over a 30-day window
@@ -110,8 +131,10 @@ def run_benchmarks() -> dict[str, float | int | str]:
     # Verify 100% zero data leakage: credit score at day 10 must be 600 + (10 * 5) = 650
     leakage_count = sum(1 for row in joined_dataset if row["credit_score"] != 650.0)
     assert leakage_count == 0, "Lookahead data leakage detected in historical join!"
-    print(f"⚡ Point-in-Time Historical Join: {len(joined_dataset)} rows joined in {join_duration_ms:.2f} ms ({join_p50_us:.2f} µs/obs)")
-    print(f"🔒 Data Leakage Invariant: 0 violations detected (100.0% zero leakage)")
+    print(
+        f"⚡ Point-in-Time Historical Join: {len(joined_dataset)} rows joined in {join_duration_ms:.2f} ms ({join_p50_us:.2f} µs/obs)"
+    )
+    print("🔒 Data Leakage Invariant: 0 violations detected (100.0% zero leakage)")
 
     # 4. Feature Drift Monitoring Latency
     drift_monitor = FeatureDriftMonitor()
@@ -122,7 +145,9 @@ def run_benchmarks() -> dict[str, float | int | str]:
     t0_drift = time.perf_counter()
     drift_report = drift_monitor.evaluate_feature_drift("credit_score", base_dist, prod_dist)
     drift_duration_ms = (time.perf_counter() - t0_drift) * 1000.0
-    print(f"⚡ Drift Evaluation (KS + PSI, 10k samples): {drift_duration_ms:.2f} ms (PSI={drift_report.psi:.4f}, KS-p={drift_report.ks_p_value:.4e})")
+    print(
+        f"⚡ Drift Evaluation (KS + PSI, 10k samples): {drift_duration_ms:.2f} ms (PSI={drift_report.psi:.4f}, KS-p={drift_report.ks_p_value:.4e})"
+    )
 
     results: dict[str, float | int | str] = {
         "online_p50_latency_us": p50_online,
@@ -162,7 +187,9 @@ All raw measurements persisted in `docs/benchmarks/feature_store_benchmark.json`
     with open("docs/BENCHMARKS.md", "w") as f:
         f.write(md)
 
-    print("✅ Benchmark results saved to docs/BENCHMARKS.md and docs/benchmarks/feature_store_benchmark.json")
+    print(
+        "✅ Benchmark results saved to docs/BENCHMARKS.md and docs/benchmarks/feature_store_benchmark.json"
+    )
     return results
 
 
