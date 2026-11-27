@@ -30,3 +30,12 @@ data/
 *.duckdb
 *.parquet
 .DS_Store
+
+# Secrets and environment configurations
+.env
+.env.*
+.env.local
+.env.development
+.env.test
+.env.production
+!.env.example

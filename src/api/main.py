@@ -1,5 +1,6 @@
 """FastAPI HTTP Service for Real-Time Feature Store & MLOps Platform."""
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 
@@ -11,6 +12,8 @@ from src.monitoring.drift import DriftReport, FeatureDriftMonitor
 from src.offline.historical_join import HistoricalJoinEngine, ObservationRecord
 from src.online.store import OnlineFeatureStore
 from src.streaming.ingestion import StreamingIngestionEngine
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Real-Time Feature Store & MLOps Platform",
@@ -100,10 +103,11 @@ def get_online_features(req: OnlineFeaturesRequest) -> list[dict[str, Any]]:
             feature_names=req.features,
         )
     except Exception as e:
+        logger.error("Error retrieving online features: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving online features: {e}",
-        )
+            detail="Error retrieving online features",
+        ) from e
 
 
 @app.post("/v1/features/ingest", status_code=status.HTTP_201_CREATED)
@@ -128,10 +132,11 @@ def historical_join(req: HistoricalJoinRequest) -> list[dict[str, Any]]:
             ttl_seconds=req.ttl_seconds,
         )
     except Exception as e:
+        logger.error("Historical join execution failed: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Historical join execution failed: {e}",
-        )
+            detail="Historical join execution failed",
+        ) from e
 
 
 @app.post("/v1/features/drift", response_model=DriftReport)

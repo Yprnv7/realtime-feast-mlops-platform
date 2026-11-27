@@ -109,7 +109,8 @@ class HistoricalJoinEngine:
             for o in observations
         }
 
-        query = f"""
+        ttl = int(ttl_seconds)
+        query = """
             WITH ranked_features AS (
                 SELECT
                     o.observation_id,
@@ -124,15 +125,15 @@ class HistoricalJoinEngine:
                 JOIN feature_events f
                   ON o.entity_id = f.entity_id
                  AND f.feature_timestamp <= o.observation_timestamp
-                 AND f.feature_timestamp >= o.observation_timestamp - INTERVAL '{ttl_seconds} SECONDS'
-                WHERE f.feature_name IN ({", ".join(f"'{name}'" for name in feature_names)})
+                 AND f.feature_timestamp >= o.observation_timestamp - (? * INTERVAL '1 SECOND')
+                WHERE f.feature_name = ANY(?)
             )
             SELECT observation_id, feature_name, feature_value
             FROM ranked_features
             WHERE rank = 1;
         """
 
-        joined_rows = self.conn.execute(query).fetchall()
+        joined_rows = self.conn.execute(query, [ttl, list(feature_names)]).fetchall()
         for obs_id, feat_name, feat_val in joined_rows:
             if obs_id in results_by_obs:
                 results_by_obs[obs_id][feat_name] = feat_val
